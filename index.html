@@ -62,7 +62,62 @@
     object-fit: cover;
     opacity: 1;
     pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Video fills the hero section and covers it responsively */
+  .bg-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 1;
+    pointer-events: none;
     z-index: 0;
+  }
+
+  /* utility to lock page scrolling */
+  .no-scroll {
+    height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  /* Disable page scroll while locked */
+  .no-scroll {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Full-screen overlay for click-to-start video */
+  #videoOverlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    z-index: 9999;
+    transition: opacity 0.6s ease;
+  }
+  #videoOverlay.fade-out { opacity: 0; pointer-events: none; }
+  #videoOverlay video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    max-height: 100vh;
+  }
+  #videoOverlay .overlay-message {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 1rem;
+    z-index: 10001;
+    pointer-events: none;
   }
 
   /* Section Our Story */
@@ -1001,8 +1056,16 @@
     </div>
 
 <section class="hero">
+
+ <video class="bg-video" id="intro-video" muted playsinline preload="auto">
+    <source src="assets/P%20%26%20O.mp4" type="video/mp4">
+    Votre navigateur ne supporte pas la vidéo HTML5.
+  </video>
+</section>
+<section class="hero">
   <!-- Image d'arrière-plan centrée -->
   <img class="bg-image" src="assets/arriereplanbleu.png" alt="" aria-hidden="true">
+ 
 
   <div class="container">
     <h1>Countdown</h1>
@@ -1313,15 +1376,14 @@
       </svg>
     </div>
 
-    <h2 class="venue-title">Ocean Front<br>Beach House</h2>
+    <h2 class="venue-title">Dar El Bouraoui<br>Gammarth,Tunis</h2>
 
     <p class="venue-address">
-      South Dixie Highway, Homestead,<br>
-      Miami-Dade County, Florida, 33030,<br>
-      United States
+      Paul-Antoine & Oumaima ,<br>
+      04-06-2026<br>
     </p>
 
-    <a class="directions-btn" href="https://www.google.com/maps?q=South+Dixie+Highway,+Homestead,+FL+33030" target="_blank" rel="noopener">
+    <a class="directions-btn" href="https://maps.app.goo.gl/8hp3sDaiP5wfXc3V7" target="_blank" rel="noopener">
       <div class="arrow-circle">
         <svg viewBox="0 0 24 24" fill="none" stroke="#7a2e2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="19" x2="12" y2="5"/>
@@ -1440,7 +1502,7 @@
         <div class="plane-icon">✈</div>
       </div>
 
-      <div class="destination">MIAMI</div>
+      <div class="destination">Gammarth</div>
       <div class="boarding-dots" aria-hidden="true"></div>
 
       <div class="boarding-details">
@@ -1454,11 +1516,11 @@
         </div>
         <div>
           <div class="label">Row</div>
-          <div class="value">2027</div>
+          <div class="value">2026</div>
         </div>
         <div>
           <div class="label">Flight</div>
-          <div class="value">WED01</div>
+          <div class="value">WED04</div>
         </div>
       </div>
 
@@ -1623,6 +1685,51 @@
     updateCountdown();
     setInterval(updateCountdown, 1000);
 
+    // Pause intro video and lock scrolling until user clicks anywhere
+    (function(){
+      const intro = document.getElementById('intro-video');
+      const audio = document.getElementById('bgAudio');
+      if (!intro) return;
+      // ensure paused state and disable looping
+      try { intro.pause(); } catch(e){}
+      try { intro.loop = false; } catch(e){}
+      // stop playback at 14.5s
+      const timeHandler = () => {
+        try {
+          if (intro.currentTime >= 13) {
+            intro.pause();
+            intro.currentTime = 13;
+            intro.removeEventListener('timeupdate', timeHandler);
+          }
+        } catch(e){}
+      };
+      intro.addEventListener('timeupdate', timeHandler);
+
+      // lock page scroll
+      document.body.classList.add('no-scroll');
+
+      const unlock = async () => {
+        // play intro video and background audio (if available)
+        try { await intro.play(); } catch(e){}
+        if (audio) {
+          try { await audio.play(); } catch(e){}
+        }
+        // remove scroll lock
+        document.body.classList.remove('no-scroll');
+        // remove this listener
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('keydown', keyHandler);
+      };
+
+      const keyHandler = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') unlock();
+      };
+
+      // listen once for user interaction
+      document.addEventListener('click', unlock, { once: true });
+      document.addEventListener('keydown', keyHandler);
+    })();
+
     // Animation au scroll : la vigne "monte" et les éléments apparaissent
     const steps = document.querySelectorAll(".timeline-section .step");
     const observer = new IntersectionObserver((entries) => {
@@ -1676,7 +1783,7 @@
     const iconOff = document.getElementById("soundIconOff");
     const bgAudio = document.getElementById("bgAudio");
     if (soundBtn && iconOn && iconOff && bgAudio) {
-      // set initial icon based on audio state
+      // audio remains paused initially; show correct icon
       if (bgAudio.paused) {
         iconOn.style.display = "none";
         iconOff.style.display = "block";
